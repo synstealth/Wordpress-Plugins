@@ -1,0 +1,47 @@
+<?php
+/*
+	Plugin Name: DR: Control Affiliate Payout Max Limits  
+	Description: Controls the max payout allowed for affiliate users.
+	Version: 1.0
+	Author: Dustin Robinson
+	Author URI: http://www.robinsonbrosenterprise.com
+*/
+
+add_action( 'wp_loaded', 'my_front_end_function');
+function my_front_end_function() {
+    if ( !is_admin() ) { 
+	
+		$url = $_SERVER['REQUEST_URI'];
+		$parts = explode('/',$url);
+		$affiliate = strtolower($parts[2]);
+		
+		require_once('php7.php');
+		@mysql_connect(DB_HOST, DB_USER, DB_PASSWORD) or die('Connection Error: '.mysql_error());
+		mysql_select_db(DB_NAME) or die('Database Selection Error: '.mysql_error());
+		
+		
+		// FIND USER_ID from affiliate username in WP
+		$resource = mysql_query("SELECT ID FROM dc_users WHERE user_login='$affiliate'") or die("query error: ".mysql_error());
+		while($row = mysql_fetch_assoc($resource)){$affiliate_wp_userid = $row['ID'];}
+		
+		$aq="SELECT * FROM dc_affiliate_wp_affiliates WHERE user_id='$affiliate_wp_userid'";
+		$aresource = mysql_query($aq) or die("query error: ".mysql_error());
+		while($arow = mysql_fetch_assoc($aresource)){
+			
+			$total = ($arow['unpaid_earnings'] >= 100) ? 1 : 0;
+			//echo '<b>'.$affiliate.'</b> \'s affiliate id is '.$affiliate_wp_userid.'<br />';
+			//echo '<b>'.$affiliate.'</b> \'s earnings: '.$arow['unpaid_earnings'].' for '.$arow['visits'].' visits.';
+		}
+	
+		if($total == 1){
+		?>	
+        <meta http-equiv="refresh" content="0; URL='https://defcan.com'" />
+        <?php
+		}
+		
+    }
+	
+}
+
+
+?>

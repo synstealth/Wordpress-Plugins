@@ -1,0 +1,36 @@
+<?
+/*
+	Plugin Name: DR: New Product Alerter Bot 
+	Description: Sends alerts to the slack channel for any new product added to the system
+	Version: 1.0
+	Author: Dustin Robinson
+	Author URI: http://www.robinsonbrosenterprise.com
+*/
+
+add_action( 'transition_post_status', 'filter_new_product_alert', 9999, 3 );
+ 
+function filter_new_product_alert($new_status, $old_status, $post){
+   	if(
+      'product' !== $post->post_type ||
+      'publish' !== $new_status ||
+      'publish' === $old_status
+	){ return; }
+	$productId = $post->ID;
+	$product = wc_get_product( $productId );
+	$title = $product->get_title();
+	$message = "Hey! <@xxxxxxx>, <@xxxxxx> We have a new product in: ".$title."\r\n";
+	
+	$data = json_encode(array(
+		"channel"       =>  "#socialmedia",
+		"text"          =>  $message,
+		"username"		=> "NewProduct_Bot",
+		"icon_emoji"    =>  ":new:"
+	));
+	$ch = curl_init("https://hooks.slack.com/services/xxxx/xxxxx/xxxxxxxx");
+	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+	curl_setopt($ch, CURLOPT_POSTFIELDS, array('payload' => $data));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+	$result = curl_exec($ch);
+	curl_close($ch);
+}      

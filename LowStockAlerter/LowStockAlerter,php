@@ -1,0 +1,67 @@
+<?
+/*
+	Plugin Name: DR: Slack-Low Stock Alert Bot  
+	Description: Sends low stock alerts to the slack channel
+	Version: 1.0
+	Author: Dustin Robinson
+	Author URI: http://www.robinsonbrosenterprise.com
+*/
+global $product;
+function action_woocommerce_low_stock( $product ) { 
+
+	$message = $product->get_title();
+	$parent = $product->get_parent_id();
+	$varProd = new WC_Product_Variable($parent);
+	$variation_data = $varProd->get_available_variations();
+	
+	//$variation_data = $product->get_variation_attributes(); // variation data in array
+    $variation_detail = woocommerce_get_formatted_variation($variation_data, true);  // this will give all variation detail in one line
+    // return $variation_data; // $variation_data will return only the data which can be used to store variation data
+	
+	$message .= $variation_detail." is low in stock! \r\n";
+	$message .= 'Stock: '.$product->get_stock_quantity();
+	
+	$data = json_encode(array(
+			"channel"       =>  "#stockalerts",
+			"text"          =>  $message,
+			"username"		=> "LowProduct_Police",
+			"icon_emoji"    =>  ":shirt:"
+		));
+	$ch = curl_init("https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxxxxxxx");
+	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+	curl_setopt($ch, CURLOPT_POSTFIELDS, array('payload' => $data));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+	$result = curl_exec($ch);
+	curl_close($ch);
+}; 
+         
+add_action( 'woocommerce_low_stock', 'action_woocommerce_low_stock', 10, 1 );
+
+function action_woo_no_stock($product){
+	$qty = $product->get_stock_quantity();
+	if($qty == 0){
+		$message = $product->get_title()." is out of stock! \r\n";
+		$data = json_encode(array(
+				"channel"       =>  "#stockalerts",
+				"text"          =>  $message,
+				"username"		=> "OutOfStock_Police",
+				"icon_emoji"    =>  ":x:"
+			));
+		$ch = curl_init("https://hooks.slack.com/services/xxxxxx/xxxxxx/xxxxxx");
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+		curl_setopt($ch, CURLOPT_POSTFIELDS, array('payload' => $data));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+		$result = curl_exec($ch);
+		curl_close($ch);
+	
+		
+	}
+}
+
+add_action( 'woocommerce_no_stock', 'action_woo_no_stock', 10, 1 );
+
+
+
+?>
